@@ -1,7 +1,11 @@
 # Next milestone: a working /hello bot
 
-Status: proposed; awaiting user validation before implementation.
+Status: approved and implemented on 2026-11-12; Release build and 18 offline
+tests passed. Live check deferred by the user.
 Implementation branch: `feature/hello-command`.
+
+The user explicitly deferred the live Discord check. Complete offline checks
+and document the live smoke test as pending; do not request or use credentials.
 
 ## Scope
 

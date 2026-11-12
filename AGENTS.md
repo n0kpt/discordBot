@@ -2,10 +2,11 @@
 
 ## Current stage
 
-Project setup and initial unit tests are authorized. Record requirements and
-decisions in `docs/project-plan.md`. A minimal Discord-independent greeting
-component and test dependencies are in scope. The live bot, integrations, and
-deployment implementation remain future work.
+The user approved the live `/hello` milestone in `docs/next-milestone.md`.
+Implement it on `feature/hello-command`, including configuration validation,
+guild-restricted command handling, lifecycle handling, tests, and documentation.
+Docker, entry sounds, and CS2 remain future work requiring separate plans.
+Record requirements and decisions in `docs/project-plan.md`.
 
 ## Product direction
 

@@ -1,89 +1,87 @@
 # Test plan by stage
 
-Run the implemented repository checks from the project root. The gates below
-are cumulative: later stages keep passing the earlier gates. “Proposed” means
-the stage is future work and its checks are not implemented yet. Unit tests run
-without Discord or Steam credentials; integration and manual checks are labeled
-separately.
+Run automated checks from the repository root. Offline unit tests must not need
+Discord credentials. Record automated results separately from live integration
+checks. Later stages retain the earlier gates; “planned” checks are not
+implemented or passing until verified.
 
-## Stage 1: foundation — current scope
+## Stage 1: Discord-independent foundation — complete
 
-**Implemented unit test**
+**Automated unit test**
 
-- `dotnet test` — restore/build the solution and run the xUnit tests.
-- Greeting contract: the core greeting service returns exactly
-  `Hello, world!`.
+- `dotnet test` builds the solution and runs the xUnit tests.
+- `GreetingService` returns exactly `Hello, world!`.
 
-No Discord connection or credentials are required.
+Verified on 2026-11-12: Release build succeeded; 1 test passed, 0 failed,
+0 skipped.
 
-Verified on 2026-11-12 with `dotnet test DiscordBot.slnx --configuration Release`:
-build succeeded; 1 test passed, 0 failed, 0 skipped. Re-run the checks after changes.
+## Stage 2: guild-restricted `/hello` bot — offline checks passed, live check pending
 
-## Stage 2: live `/hello` bot — proposed
+Verified on 2026-11-12 with
+`dotnet test DiscordBot.slnx --configuration Release --disable-build-servers -m:1`:
+Release build succeeded; 18 tests passed, 0 failed, 0 skipped.
+The live Discord check remains pending at the user's request.
 
-Keep all Stage 1 checks passing. Once a Discord adapter and command handler
-exist, add:
+**Automated tests present in the implementation**
 
-**Unit tests**
+- Release build and all Stage 1 tests pass.
+- Configuration validation rejects a missing or blank token and missing,
+  malformed, zero, or overflowing server IDs before attempting login.
+- Validation and startup errors do not include a sentinel token value.
+- Offline command tests verify command discovery, the intended name and
+  description, server restrictions, and exactly one `Hello, world!` response.
+- Registration boundary tests cover guild-only command registration and avoid
+  duplicate registration on repeated and overlapping initial ready events.
+- Service resolution verifies that the hosted bot and registrar can be constructed.
+- Asynchronous slash-command failures are reported without logging exception
+  messages or their embedded secret values.
 
-- Configuration validation accepts the required settings and reports missing
-  or invalid settings without including secret values in errors or logs.
-- The command handler produces the agreed greeting response and handles its
-  defined error cases.
+An additional offline process check supplied a dummy token and invalid server ID:
+startup failed with configuration guidance and did not print the dummy token.
 
-**Integration / manual checks**
+The offline tests also cover retrying command registration after a transient
+registration failure. Command discovery currently expects `hello` with the
+description `Get a greeting.`.
+Retry occurs after a subsequent ready event, not on a background retry timer;
+restart after correcting registration failures if the connection stays up.
 
-- A test-server smoke check confirms the bot connects and `/hello` responds.
-- Verify clean shutdown and that invalid configuration prevents startup with a
-  useful, credential-safe error.
+**Live integration check — pending**
 
-Credentials must be supplied outside source control. The Discord library and
-exact configuration contract are still undecided, so these checks are plans,
-not runnable tests today.
+- Run with the existing test server's local credentials and verify connection,
+  `/hello` registration, and one greeting response in the invoking channel.
+- Restart and confirm the command remains available without duplicate entries.
+- Press Ctrl+C and confirm clean shutdown.
+- Do not count a missing live check as a pass. No live Discord check has been
+  performed for this milestone.
 
-## Stage 3: module structure — proposed
+For local secrets, use the setup in [README.md](../README.md). The test-server
+application needs the `bot` and `applications.commands` install scopes. No
+additional bot permission bitfield, Administrator permission, or Message
+Content intent is needed for this command. Discord includes
+`applications.commands` when `bot` is selected, though both scopes may be
+selected explicitly. See [Discord's application command authorization documentation](https://docs.discord.com/developers/interactions/application-commands#authorizing-your-application).
 
-Keep prior gates passing. As module registration and boundaries are designed,
-add tests for module registration, disabled modules, and failure isolation at
-the boundaries the design actually promises. Add integration checks that the
-application starts with the intended module set. Do not assert behavior for
-module controls that have not been selected or implemented.
+## Later stages — not yet approved or implemented
 
-## Stage 4: Docker on the Proxmox VM — proposed
+Each requires its own plan and user validation before implementation.
 
-Keep prior gates passing. After a container image and target VM are selected:
+### Docker deployment on the Proxmox VM
 
-**Build / configuration checks**
+After confirming the guest OS and CPU architecture, build the container for
+that target; verify runtime secret injection, startup, shutdown, and restart in
+the VM. Docker implementation and deployment checks are not part of the
+current milestone.
 
-- Build the image for the confirmed guest OS and CPU architecture.
-- Confirm required settings and secrets are injected at runtime and are not
-  baked into the image or emitted in logs.
+### Entry sounds
 
-**Manual integration checks in the VM**
+After selecting the voice library and agreeing on triggers and sound policy,
+test the chosen event filtering, queue/cooldown/cancellation behavior, and
+failure handling as applicable. Add a test-server voice integration check.
+These are candidate checks; the behavior remains undecided.
 
-- Start the container, confirm the bot reaches the test server, stop it, and
-  confirm clean shutdown.
-- Exercise the intended restart behavior and confirm it returns to service.
+### CS2 statistics
 
-The VM guest OS and CPU architecture remain unknown, so no target image check
-is runnable yet.
-
-## Stage 5: entry sounds — proposed
-
-Keep prior gates passing. Once voice behavior and policy are decided, use unit
-tests around the module's event filtering, queue behavior, cooldowns,
-cancellation, and failure handling as applicable to the chosen design. Add a
-manual test-server voice check for the selected channel and sound behavior.
-Channel selection, cooldowns, sound storage, voice library, and expected
-failure behavior remain undecided; these are candidate coverage areas, not
-promised features or existing tests.
-
-## Stage 6: CS2 statistics — proposed
-
-Keep prior gates passing. Once the desired statistics and data source are
-known, isolate external data access so tests can supply controlled responses.
-Cover valid and missing data, private/unavailable profiles where applicable,
-rate limiting, timeouts, and malformed responses according to the provider's
-documented behavior. Add only a limited, opt-in live smoke check if a suitable
-source is selected. Do not assert that particular statistics or API access
-exist until verified; no source or statistics have been chosen.
+After agreeing on specific statistics and verifying a data source, test its
+adapter with controlled valid, missing, private/unavailable, rate-limited,
+timed-out, and malformed responses when applicable. A live smoke check should
+be limited and opt-in. No API or statistic availability is assumed.
